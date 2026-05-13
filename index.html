@@ -22,29 +22,17 @@
 
     /* ── Header ── */
     header {
-      background: var(--navy);
+      background: #0d1117;
       border-bottom: 3px solid var(--gold);
-      padding: 1.25rem 2rem;
+      padding: 1rem 2rem;
       display: flex;
       align-items: center;
-      gap: 1.1rem;
+      gap: 1.5rem;
     }
-    .logo-wrap {
-      width: 64px; height: 64px;
-      border-radius: 50%;
-      overflow: hidden;
-      flex-shrink: 0;
-      position: relative;
-    }
-    /* Show only the right half (dark circle) of the two-up logo PNG.
-       Height is set larger than the container so any text below the
-       circle in the image gets cropped out by overflow:hidden. */
     .logo-wrap img {
-      height: 140px;
+      height: 90px;
       width: auto;
-      position: absolute;
-      right: 0;
-      top: 0;
+      display: block;
     }
     .brand-text h1 {
       color: #fff;
@@ -54,8 +42,7 @@
     }
     .brand-text p {
       color: var(--gold);
-      font-size: 0.82rem;
-      margin-top: 2px;
+      font-size: 0.85rem;
       letter-spacing: 0.03em;
     }
 
