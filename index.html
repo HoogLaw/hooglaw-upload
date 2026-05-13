@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hoog Law — Secure Document Upload</title>
+  <style>
+    :root {
+      --navy:  #1B2E5E;
+      --gold:  #C9A84C;
+      --light: #F4F6FA;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--navy);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--navy);
+      border-bottom: 3px solid var(--gold);
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.1rem;
+    }
+    .logo-wrap {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      position: relative;
+    }
+    /* Show only the right half (dark circle) of the two-up logo PNG.
+       Height is set larger than the container so any text below the
+       circle in the image gets cropped out by overflow:hidden. */
+    .logo-wrap img {
+      height: 140px;
+      width: auto;
+      position: absolute;
+      right: 0;
+      top: 0;
+    }
+    .brand-text h1 {
+      color: #fff;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+    }
+    .brand-text p {
+      color: var(--gold);
+      font-size: 0.82rem;
+      margin-top: 2px;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Main ── */
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2.5rem 1rem 3rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 10px 48px rgba(0,0,0,0.3);
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 600px;
+    }
+    .card-title {
+      color: var(--navy);
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .matter-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--light);
+      border: 1px solid #d0d8ea;
+      color: var(--navy);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 1.6rem;
+      letter-spacing: 0.04em;
+    }
+    .matter-badge::before { content: '🔒'; }
+
+    /* ── Form fields ── */
+    .field { margin-bottom: 1.1rem; }
+    label {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #2a3a5c;
+      margin-bottom: 5px;
+    }
+    input[type=text], input[type=email], select, textarea {
+      width: 100%;
+      padding: 0.62rem 0.9rem;
+      border: 1.5px solid #cdd5e4;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: #1a1a1a;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+      background: #fff;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--navy);
+      box-shadow: 0 0 0 3px rgba(27,46,94,0.10);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    select { cursor: pointer; }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 2px dashed #b0bdd5;
+      border-radius: 10px;
+      padding: 1.8rem 1rem;
+      text-align: center;
+      background: var(--light);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.over {
+      border-color: var(--navy);
+      background: #e8edf7;
+    }
+    .drop-zone .dz-icon { font-size: 2.2rem; display: block; margin-bottom: 0.5rem; }
+    .drop-zone p { font-size: 0.87rem; color: #5a6a8a; line-height: 1.5; }
+    .drop-zone strong { color: var(--navy); }
+    .drop-zone input[type=file] { display: none; }
+
+    /* ── File list ── */
+    .file-list { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 6px; }
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--light);
+      border: 1px solid #d8e0ee;
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 0.84rem;
+      color: #2a3a5c;
+    }
+    .file-item .fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-item .fsize { color: #7a8aaa; margin: 0 10px; flex-shrink: 0; font-size: 0.78rem; }
+    .file-item .rm-btn {
+      background: none; border: none; cursor: pointer;
+      color: #aab; font-size: 1rem; line-height: 1; padding: 2px 4px;
+      border-radius: 4px; flex-shrink: 0;
+    }
+    .file-item .rm-btn:hover { color: #c00; background: #fee; }
+
+    /* ── Progress & status ── */
+    .progress-wrap { margin-top: 1rem; display: none; }
+    .progress-bar-bg {
+      background: #e4eaf5;
+      border-radius: 6px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--gold);
+      width: 0%;
+      transition: width 0.4s ease;
+      border-radius: 6px;
+    }
+    .progress-label {
+      font-size: 0.8rem;
+      color: #667;
+      margin-top: 5px;
+      text-align: center;
+    }
+
+    .status-msg {
+      margin-top: 1rem;
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      display: none;
+    }
+    .status-msg.success { background: #e8f7ef; color: #196a3c; border: 1px solid #9fd4b8; }
+    .status-msg.error   { background: #fdecea; color: #991f1f; border: 1px solid #f0b8b8; }
+
+    /* ── Submit button ── */
+    .submit-btn {
+      margin-top: 1.6rem;
+      width: 100%;
+      padding: 0.9rem;
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .submit-btn:hover:not(:disabled) { background: #243d7a; }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Full-screen states ── */
+    .centered-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: #fff;
+    }
+    .spinner {
+      width: 52px; height: 52px;
+      border: 5px solid rgba(255,255,255,0.2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin-bottom: 1.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .centered-screen h2 { font-size: 1.4rem; margin-bottom: 0.6rem; }
+    .centered-screen.error-screen h2 { color: var(--gold); }
+    .centered-screen p  { font-size: 0.92rem; opacity: 0.8; max-width: 420px; line-height: 1.6; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 1.25rem;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.35);
+    }
+    footer a { color: var(--gold); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 480px) {
+      .card { padding: 1.5rem; }
+      header { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <!-- Right half of the two-up PNG is the dark-circle version -->
+    <img src="HoogLawCircle_Light_and_Dark.png" alt="Hoog Law logo">
+  </div>
+  <div class="brand-text">
+    <h1>HOOG LAW</h1>
+    <p>Longmont, Colorado &nbsp;|&nbsp; Estate Planning &amp; Business Law</p>
+  </div>
+</header>
+
+<main id="app">
+  <div class="centered-screen">
+    <div class="spinner"></div>
+    <p>Verifying secure upload link&hellip;</p>
+  </div>
+</main>
+
+<footer>
+  &copy; 2025 Hoog Law &nbsp;|&nbsp; <a href="https://hooglaw.com" target="_blank">hooglaw.com</a>
+  &nbsp;|&nbsp; Documents are transmitted securely and deposited directly into your matter file.
+</footer>
+
+<script>
+(async () => {
+  'use strict';
+
+  const app    = document.getElementById('app');
+  const params = new URLSearchParams(location.search);
+  const token  = params.get('t');
+  const matter = params.get('m');
+  const server = (params.get('s') || 'http://localhost:3000').replace(/\/$/, '');
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function showError(heading, body) {
+    app.innerHTML = `
+      <div class="centered-screen error-screen">
+        <h2>${heading}</h2>
+        <p>${body}</p>
+      </div>`;
+  }
+
+  function fmt(bytes) {
+    if (bytes < 1024)         return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+  }
+
+  // ── Validate token ────────────────────────────────────────────────────────
+  if (!token || !matter) {
+    return showError('Invalid Link', 'This link is missing required information. Please contact your attorney for a new upload link.');
+  }
+
+  let tokenInfo;
+  try {
+    const r = await fetch(`${server}/validate-token`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ token }),
+    });
+    tokenInfo = await r.json();
+    if (!tokenInfo.valid) return showError('Link Unavailable', tokenInfo.error || 'This upload link is no longer valid.');
+  } catch {
+    return showError(
+      'Server Unreachable',
+      'The secure server could not be reached. Please ensure the Hoog Law server is running on your attorney\'s computer and try again, or contact your attorney directly.'
+    );
+  }
+
+  // ── Build form ────────────────────────────────────────────────────────────
+  const files = [];
+
+  app.innerHTML = `
+    <div class="card">
+      <div class="card-title">Secure Document Upload</div>
+      <div class="matter-badge">${matter}</div>
+
+      <div class="field">
+        <label for="f-name">Your Full Name *</label>
+        <input id="f-name" type="text" placeholder="Jane Smith" autocomplete="name" required>
+      </div>
+      <div class="field">
+        <label for="f-email">Your Email Address *</label>
+        <input id="f-email" type="email" placeholder="jane@example.com" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="f-doctype">Document Type *</label>
+        <select id="f-doctype">
+          <option value="">— Select document type —</option>
+          <option>Estate planning documents</option>
+          <option>Financial statements</option>
+          <option>Business formation documents</option>
+          <option>Prior wills or trusts</option>
+          <option>Powers of attorney</option>
+          <option>Tax returns</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Files *</label>
+        <div class="drop-zone" id="drop-zone">
+          <span class="dz-icon">📂</span>
+          <p>Drag &amp; drop files here, or <strong>click to browse</strong></p>
+          <p style="margin-top:4px;font-size:0.78rem">PDF, Word, Excel, images &bull; Up to 100 MB per file</p>
+          <input type="file" id="file-input" multiple>
+        </div>
+        <div class="file-list" id="file-list"></div>
+      </div>
+      <div class="field">
+        <label for="f-notes">Additional Notes <span style="font-weight:400;color:#7a8aaa">(optional)</span></label>
+        <textarea id="f-notes" placeholder="Any context or instructions for your attorney…"></textarea>
+      </div>
+
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
+        <div class="progress-label" id="progress-label">Uploading…</div>
+      </div>
+      <div class="status-msg" id="status-msg"></div>
+      <button class="submit-btn" id="submit-btn">Submit Documents Securely</button>
+    </div>`;
+
+  // ── File handling ─────────────────────────────────────────────────────────
+  const dropZone  = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const fileList  = document.getElementById('file-list');
+
+  function addFiles(newFiles) {
+    for (const f of newFiles) {
+      if (!files.find(x => x.name === f.name && x.size === f.size)) files.push(f);
+    }
+    renderList();
+  }
+
+  function renderList() {
+    fileList.innerHTML = files.map((f, i) => `
+      <div class="file-item">
+        <span class="fname">📄 ${f.name}</span>
+        <span class="fsize">${fmt(f.size)}</span>
+        <button class="rm-btn" data-i="${i}" title="Remove">✕</button>
+      </div>`).join('');
+    fileList.querySelectorAll('.rm-btn').forEach(btn => {
+      btn.addEventListener('click', () => { files.splice(+btn.dataset.i, 1); renderList(); });
+    });
+  }
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => { addFiles([...fileInput.files]); fileInput.value = ''; });
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('over');
+    addFiles([...e.dataTransfer.files]);
+  });
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+  document.getElementById('submit-btn').addEventListener('click', async () => {
+    const name    = document.getElementById('f-name').value.trim();
+    const email   = document.getElementById('f-email').value.trim();
+    const docType = document.getElementById('f-doctype').value;
+    const notes   = document.getElementById('f-notes').value.trim();
+    const status  = document.getElementById('status-msg');
+    const progWrap = document.getElementById('progress-wrap');
+    const progFill = document.getElementById('progress-fill');
+    const progLabel = document.getElementById('progress-label');
+    const btn     = document.getElementById('submit-btn');
+
+    status.style.display = 'none';
+
+    if (!name || !email || !docType || files.length === 0) {
+      status.className     = 'status-msg error';
+      status.style.display = 'block';
+      status.textContent   = 'Please fill in all required fields and select at least one file.';
+      return;
+    }
+
+    btn.disabled     = true;
+    progWrap.style.display = 'block';
+    progFill.style.width   = '15%';
+    progLabel.textContent  = 'Preparing upload…';
+
+    const fd = new FormData();
+    fd.append('token',       token);
+    fd.append('clientName',  name);
+    fd.append('clientEmail', email);
+    fd.append('docType',     docType);
+    fd.append('notes',       notes);
+    files.forEach(f => fd.append('files', f));
+
+    try {
+      progFill.style.width  = '45%';
+      progLabel.textContent = `Uploading ${files.length} file${files.length > 1 ? 's' : ''}…`;
+
+      const r    = await fetch(`${server}/upload`, { method: 'POST', body: fd });
+      const data = await r.json();
+
+      progFill.style.width  = '100%';
+      progLabel.textContent = 'Complete';
+
+      if (!r.ok) throw new Error(data.error || `Server error ${r.status}`);
+
+      status.className     = 'status-msg success';
+      status.style.display = 'block';
+      status.innerHTML     = `<strong>Upload complete!</strong> ${data.count} file${data.count !== 1 ? 's' : ''} received securely.<br>
+        Your attorney has been notified. You may close this window.`;
+      btn.textContent = '✅ Uploaded Successfully';
+
+    } catch (err) {
+      progFill.style.width  = '0%';
+      btn.disabled          = false;
+      status.className      = 'status-msg error';
+      status.style.display  = 'block';
+      status.textContent    = 'Upload failed: ' + err.message + '. Please try again or contact your attorney directly.';
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>
